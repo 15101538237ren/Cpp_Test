@@ -1234,7 +1234,7 @@ void start_simulation()
     vector<int> index_pos_list;
     
     //当前文件夹的全路径
-    string path_dir="C:/Users/ren/Desktop/Codeblocks/Nucleosome/";
+    string path_dir="/Users/Ren/XCodeProjects/Cpp_Test/Cpp_Test/";
     
     string output_dir_name = "output/";
     string input_dir_name = "input/";
