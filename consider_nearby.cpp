@@ -345,6 +345,17 @@ vector<int> get_neucleosome_id_list_from_pos_list(vector<int> index_pos_list, st
 
 void simulate(int round_no,int generation, int time_step, string init_cell,vector<int> neucleosome_id_list,vector<vector<int>> cpg_id_list, string detail_file_dir, string ratio_file_dir,string nuc_detail_dir, string nuc_ratio_dir,string nucleosome_pos_file_path, vector<double> propensity_list,vector<double> nucleosome_propensity_list, vector<double> nuceo_to_cpg_efficiency,vector<double> nearby_promote_efficiency,vector<double> k_range, int update_nuc_status_frequency, vector<int> index_pos_list, int max_cells,int out_start_gen,int out_end_gen,int round_start)
 {
+    double U_plus=propensity_list[0];
+    double H_plus=propensity_list[1];
+    double M_minus=propensity_list[2];
+    double H_minus=propensity_list[3];
+    double H_p_H=propensity_list[4];
+    double H_p_M=propensity_list[5];
+    double U_p_M=propensity_list[6];
+    double H_m_U=propensity_list[7];
+    double M_m_U=propensity_list[8];
+    double pij = 1.0;
+    
     random_device rd;
     mt19937 eng(rd());
     
@@ -356,7 +367,7 @@ void simulate(int round_no,int generation, int time_step, string init_cell,vecto
     cell_collection.pb(init_cell);
     nucleo_collection.push_back(nucleosome_status);
     uniform_int_distribution<int> nuc_rand(0,nucleosome_status.length()-1);
-    uniform_int_distribution<int> cpg_rand(0,init_cell.length()-1);
+    uniform_int_distribution<int> cpg_rand(1,init_cell.length()-2);
     
     
     //拷贝全局初始化的核小体状态以便于模拟的时候做更改
@@ -546,7 +557,11 @@ void simulate(int round_no,int generation, int time_step, string init_cell,vecto
                 //                vector<int> reaction_list_cnt = {0,0,0,0};
                 for(int k = 0; k < cell_len; k++)
                 {
-                    int target_reaction_CpG_site = cpg_rand(eng);  //0~cell_len-1
+                    int target_reaction_CpG_site = cpg_rand(eng);  //1~cell_len-2
+                    int col_CpG_site_index = target_reaction_CpG_site + ((rand()%2)?1:-1);
+                    char status_col_site = cell_collection[idx][col_CpG_site_index];
+                    
+                    char xj_status=status_col_site;
                     
                     double sum_propensity = 0.0;
                     int reaction_id=-1;
@@ -574,16 +589,14 @@ void simulate(int round_no,int generation, int time_step, string init_cell,vecto
                         }
                     }
                     
-                    double u_i_plus = propensity_list[0];
+                    double u_i_plus = U_plus + pij * int(xj_status == 'M') * (U_p_M - U_plus);
+                    double h_i_plus = H_plus + pij * int(xj_status == 'M') * (H_p_M - H_plus) + pij * int(xj_status == 'H') * (H_p_H - H_plus);
+                    double m_i_minus = M_minus + pij * int(xj_status == 'U') * (M_m_U - M_minus);
+                    double h_i_minus = H_minus + pij * int(xj_status == 'U') * (H_m_U - H_minus);
+                    
                     u_i_plus = u_i_plus + u_add;
-                    
-                    double h_i_plus=propensity_list[1];
                     h_i_plus = h_i_plus + h_add;
-                    
-                    double m_i_minus=propensity_list[2];
                     m_i_minus = max(m_i_minus + m_minus,0.0);
-                    
-                    double h_i_minus=propensity_list[3];
                     h_i_minus = max(h_i_minus + h_minus,0.0);
                     
                     vector<double> propensity_tmp = {u_i_plus,h_i_plus,m_i_minus,h_i_minus};
@@ -1202,8 +1215,8 @@ void start_simulation()
     
     int update_nuc_status_frequency = 1;
     
-    //CpG的趋向性函数,即4种反应各自的比例
-    vector<double> propensity_list = {0.008,0.008, 0.05, 0.05};
+    //CpG的趋向性函数,即9种反应各自的比例,顺序:u+,h+,m-,h-,h+h,h+m,u+m,h-u,m-u
+    vector<double> propensity_list = {0.008,0.008, 0.04, 0.04,0.24,0.24,0.24,0.05,0.05};
     
     //核小体的趋向性函数,4种反应各自的比例
     vector<double> nucleosome_propensity_list = {0.04,0.04,0.2,0.2};
