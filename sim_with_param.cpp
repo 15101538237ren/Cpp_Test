@@ -62,7 +62,7 @@ int exist_or_make_dir(string dir_path)
     {
         cout<<dir_path<<" is not existing"<<endl;
         cout<<"now make it"<<endl;
-        int flag = mkdir(dir_path.c_str());
+        int flag = mkdir(dir_path.c_str(),0777);
         if (flag == 0)
         {
             cout<<"make "<< dir_path.c_str() <<" successfully!"<<endl;
@@ -87,12 +87,12 @@ char right_status_hash[] = {'H','M','H','U'};
 //对应反应编号，反应后的核小体状态
 char right_nuc_status_hash[] = {'H','A','H','U'};
 
-string to_string(int snum)
-{
-    ostringstream stream;
-    stream<<snum;
-    return stream.str();
-}
+//string to_string(int snum)
+//{
+//    ostringstream stream;
+//    stream<<snum;
+//    return stream.str();
+//}
 
 //对0-range采sample_num个样本编号
 vector<int> index_random(int sample_num, int range)
@@ -1504,7 +1504,24 @@ void start_simualation_from(vector<string> param_file_path_list)
 
         double M_m_U = std::atof(param_map["M_m_U"].c_str());
         printf("M_m_U : %.6f \n",M_m_U);
-
+        
+        
+        beta = std::atof(param_map["beta"].c_str());
+        printf("beta : %.6f \n",beta);
+        
+        gamma_param = std::atof(param_map["gamma_param"].c_str());
+        printf("gamma_param : %.6f \n",gamma_param);
+        
+        alpha = std::atof(param_map["alpha"].c_str());
+        printf("alpha : %.6f \n",alpha);
+        
+        power = std::atof(param_map["power"].c_str());
+        printf("power : %.6f \n",power);
+        
+        c_off = std::atof(param_map["c_off"].c_str());
+        printf("c_off : %.6f \n",c_off);
+        
+        
 
         //CpG的趋向性函数,即9种反应各自的比例,顺序:u+,h+,m-,h-,h+h,h+m,u+m,h-u,m-u
         vector<double> propensity_list = {U_plus, H_plus, M_minus, H_minus,H_p_H, H_p_M,U_p_M,H_m_U,M_m_U};
@@ -1591,7 +1608,7 @@ void start_simualation_from(vector<string> param_file_path_list)
         int rtn_code=exist_or_make_dir(output_dir);
 
         string input_bed_file_path = now_dir + input_dir_name + "chr1.bed";
-        string nucleosome_pos_file_path = output_dir + "nucleosome_positions.np";
+        string nucleosome_pos_file_path = now_dir + input_dir_name + "nucleosome_positions.np";
         string ratio_file_dir = output_dir+"ratio/";//CpG ratio文件夹
         rtn_code=exist_or_make_dir(ratio_file_dir);
         string nuc_ratio_dir = output_dir + "nuc_ratio/"; //核小体 ratio 文件夹
@@ -1675,7 +1692,7 @@ int main(int argc, const char * argv[])
 {
     //    start_simulation();
     //    system("say Mission completed!");
-    vector<string> param_file_path_list = {"C:/Users/ren/Desktop/Codeblocks/Nucleosome/config.txt"};
+    vector<string> param_file_path_list = {"/Users/Ren/XCodeProjects/Cpp_Test/Cpp_Test/config.txt"};
     start_simualation_from(param_file_path_list);
     return 0;
 }

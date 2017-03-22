@@ -32,7 +32,7 @@ nuceo_to_cpg_u_add 0.0
 nuceo_to_cpg_h_add 0.0
 nuceo_to_cpg_m_minus 0.0
 nuceo_to_cpg_h_minus 0.0
-now_dir C:/Users/ren/Desktop/Codeblocks/Nucleosome/
+now_dir /Users/Ren/XCodeProjects/Cpp_Test/Cpp_Test/
 output_dir_name output
 input_dir_name input
 time_step 100
