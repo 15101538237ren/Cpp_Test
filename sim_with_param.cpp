@@ -12,6 +12,7 @@
 #include<stdlib.h>
 #include<sstream>
 #include<string>
+#include <cstdlib>
 #include<string.h>
 #include<vector>
 #include<algorithm>
@@ -1254,12 +1255,12 @@ void start_simulation()
     vector<int> index_pos_list;
     
     //当前文件夹的全路径
-    string path_dir="/Users/Ren/XCodeProjects/Cpp_Test/Cpp_Test/";
+    string now_dir="/Users/Ren/XCodeProjects/Cpp_Test/Cpp_Test/";
     
     string output_dir_name = "output/";
     string input_dir_name = "input/";
-    string output_dir = path_dir + output_dir_name;
-    string input_bed_file_path = path_dir + input_dir_name + "chr1.bed";
+    string output_dir = now_dir + output_dir_name;
+    string input_bed_file_path = now_dir + input_dir_name + "chr1.bed";
     string nucleosome_pos_file_path = output_dir + "nucleosome_positions.np";
     string ratio_file_dir = output_dir+"ratio/";//CpG ratio文件夹
     string nuc_ratio_dir = output_dir + "nuc_ratio/"; //核小体 ratio 文件夹
@@ -1381,13 +1382,263 @@ void preprocess_file(string input_file_path,string output_file_path)
     printf("Write Success!");
     
 }
+
+//将参数文件里面的所有参数名和参数值读取并存入hashmap，返回得到的hashmap
+
+map<string,string> read_param_file_into_map(string param_file_path)
+{
+    map<string,string> k_v_hash;
+    ifstream param_file(param_file_path);
+    int  buf_size=100;
+    
+    char buffer[buf_size];
+    
+    if (!param_file)
+    {
+        cout << "参数文件路径" << param_file_path << "不存在!"<< endl;
+        exit(0);
+    }
+    
+    char param_name[buf_size];
+    char param_val[buf_size];
+    while (! param_file.eof() )
+    {
+        param_file.getline(buffer,buf_size);
+        sscanf(buffer,"%s %s",param_name,param_val);
+//        printf("%s : %s \n",param_name,param_val);
+        k_v_hash[param_name] = param_val;
+    }
+    return k_v_hash;
+}
+
+void start_simualation_from(vector<string> param_file_path_list)
+{
+    //遍历参数文件路径列表
+    for(int i = 0; i < param_file_path_list.size(); i++)
+    {
+        //当前参数文件路径
+        string param_file_path = param_file_path_list[i];
+        //获取参数和参数值
+        map<string,string> param_map = read_param_file_into_map(param_file_path);
+        
+        int round_start = std::atoi(param_map["round_start"].c_str());
+        printf("round_start : %d \n",round_start);
+        
+        int round_end = std::atoi(param_map["round_end"].c_str());
+        printf("round_end : %d \n",round_end);
+        
+        int generations = std::atoi(param_map["generations"].c_str());
+        printf("generations : %d \n",generations);
+        
+        int max_cpg_sites = std::atoi(param_map["max_cpg_sites"].c_str());
+        printf("max_cpg_sites : %d \n",max_cpg_sites);
+        
+        string init_cell;
+        double m_ratio = std::atof(param_map["m_ratio"].c_str());
+        printf("m_ratio : %.6f \n",m_ratio);
+        
+        double u_ratio = std::atof(param_map["u_ratio"].c_str());
+        printf("u_ratio : %.6f \n",u_ratio);
+        
+        int out_start_gen = std::atoi(param_map["out_start_gen"].c_str());
+        printf("out_start_gen : %d \n",out_start_gen);
+        
+        int out_end_gen = std::atoi(param_map["out_end_gen"].c_str());
+        printf("out_end_gen : %d \n",out_end_gen);
+        
+        int update_nuc_status_frequency = std::atoi(param_map["update_nuc_status_frequency"].c_str());
+        printf("update_nuc_status_frequency : %d \n",update_nuc_status_frequency);
+        
+        double U_plus = std::atof(param_map["U_plus"].c_str());
+        printf("U_plus : %.6f \n",U_plus);
+        
+        double H_plus = std::atof(param_map["H_plus"].c_str());
+        printf("H_plus : %.6f \n",H_plus);
+        
+        double M_minus = std::atof(param_map["M_minus"].c_str());
+        printf("M_minus : %.6f \n",M_minus);
+        
+        double H_minus = std::atof(param_map["H_minus"].c_str());
+        printf("H_minus : %.6f \n",H_minus);
+        
+        double H_p_H = std::atof(param_map["H_p_H"].c_str());
+        printf("H_p_H : %.6f \n",H_p_H);
+        
+        double H_p_M = std::atof(param_map["H_p_M"].c_str());
+        printf("H_p_M : %.6f \n",H_p_M);
+        
+        double U_p_M = std::atof(param_map["U_p_M"].c_str());
+        printf("U_p_M : %.6f \n",U_p_M);
+        
+        double H_m_U = std::atof(param_map["H_m_U"].c_str());
+        printf("H_m_U : %.6f \n",H_m_U);
+        
+        double M_m_U = std::atof(param_map["M_m_U"].c_str());
+        printf("M_m_U : %.6f \n",M_m_U);
+        
+        
+        //CpG的趋向性函数,即9种反应各自的比例,顺序:u+,h+,m-,h-,h+h,h+m,u+m,h-u,m-u
+        vector<double> propensity_list = {U_plus, H_plus, M_minus, H_minus,H_p_H, H_p_M,U_p_M,H_m_U,M_m_U};
+        
+        double uu_k_plus = std::atof(param_map["uu_k_plus"].c_str());
+        printf("uu_k_plus : %.6f \n",uu_k_plus);
+        
+        double au_k_plus = std::atof(param_map["au_k_plus"].c_str());
+        printf("au_k_plus : %.6f \n",au_k_plus);
+        
+        double aa_k_minus = std::atof(param_map["aa_k_minus"].c_str());
+        printf("aa_k_minus : %.6f \n",aa_k_minus);
+        
+        double au_k_minus = std::atof(param_map["au_k_minus"].c_str());
+        printf("au_k_minus : %.6f \n",au_k_minus);
+        
+        //核小体的趋向性函数,4种反应各自的比例
+        vector<double> nucleosome_propensity_list = {uu_k_plus, au_k_plus, aa_k_minus,au_k_minus};
+        
+        double nearby_nucleosome_to_uu_plus = std::atof(param_map["nearby_nucleosome_to_uu_plus"].c_str());
+        printf("nearby_nucleosome_to_uu_plus : %.6f \n",nearby_nucleosome_to_uu_plus);
+        
+        double nearby_nucleosome_to_au_plus = std::atof(param_map["nearby_nucleosome_to_au_plus"].c_str());
+        printf("nearby_nucleosome_to_au_plus : %.6f \n",nearby_nucleosome_to_au_plus);
+        
+        double nearby_nucleosome_to_aa_minus = std::atof(param_map["nearby_nucleosome_to_aa_minus"].c_str());
+        printf("nearby_nucleosome_to_aa_minus : %.6f \n",nearby_nucleosome_to_aa_minus);
+        
+        double nearby_nucleosome_to_au_minus = std::atof(param_map["nearby_nucleosome_to_au_minus"].c_str());
+        printf("nearby_nucleosome_to_au_minus : %.6f \n",nearby_nucleosome_to_au_minus);
+        
+        
+        //相邻核小体对当前核小体的促进效率,按照uu+,au+,aa-,au-的顺序
+        vector<double> nearby_promote_efficiency = {nearby_nucleosome_to_uu_plus,nearby_nucleosome_to_au_plus,nearby_nucleosome_to_aa_minus,nearby_nucleosome_to_au_minus};
+        
+        double uu_k_plus_k_range = std::atof(param_map["uu_k_plus_k_range"].c_str());
+        printf("uu_k_plus_k_range : %.6f \n",uu_k_plus_k_range);
+        
+        double au_k_plus_k_range = std::atof(param_map["au_k_plus_k_range"].c_str());
+        printf("au_k_plus_k_range : %.6f \n",au_k_plus_k_range);
+        
+        double aa_k_minus_k_range = std::atof(param_map["aa_k_minus_k_range"].c_str());
+        printf("aa_k_minus_k_range : %.6f \n",aa_k_minus_k_range);
+        
+        double au_k_minus_k_range = std::atof(param_map["au_k_minus_k_range"].c_str());
+        printf("au_k_minus_k_range : %.6f \n",au_k_minus_k_range);
+        
+        //UU+的Kmax-Kmin,和AU+的Kmax-Kmin
+        vector<double> k_range = {uu_k_plus_k_range,au_k_plus_k_range,aa_k_minus_k_range,au_k_minus_k_range};
+        
+        double nuceo_to_cpg_u_add = std::atof(param_map["nuceo_to_cpg_u_add"].c_str());
+        printf("nuceo_to_cpg_u_add : %.6f \n",nuceo_to_cpg_u_add);
+        
+        double nuceo_to_cpg_h_add = std::atof(param_map["nuceo_to_cpg_h_add"].c_str());
+        printf("nuceo_to_cpg_h_add : %.6f \n",nuceo_to_cpg_h_add);
+        
+        double nuceo_to_cpg_m_minus = std::atof(param_map["nuceo_to_cpg_m_minus"].c_str());
+        printf("nuceo_to_cpg_m_minus : %.6f \n",nuceo_to_cpg_m_minus);
+        
+        double nuceo_to_cpg_h_minus = std::atof(param_map["nuceo_to_cpg_h_minus"].c_str());
+        printf("nuceo_to_cpg_h_minus : %.6f \n",nuceo_to_cpg_h_minus);
+        
+        
+        //核小体对u+以及m-两个反应速率的促进程度，按照其u+,m-原始速率的倍数计算
+        //vector<double> nuceo_to_cpg_efficiency = {0.032,0.032, -0.0016,-0.0016};
+        vector<double> nuceo_to_cpg_efficiency = {nuceo_to_cpg_u_add,nuceo_to_cpg_h_add,nuceo_to_cpg_m_minus,nuceo_to_cpg_h_minus};
+        
+        vector<int> index_pos_list;
+        
+        //当前文件夹的全路径
+        string now_dir = param_map["now_dir"]+"/";
+        printf("now_dir : %s \n",param_map["now_dir"].c_str());
+        
+        //输出文件夹的名字
+        string output_dir_name = param_map["output_dir_name"]+"/";
+        printf("output_dir_name : %s \n",param_map["output_dir_name"].c_str());
+        
+        //输入文件夹的名字
+        string input_dir_name = param_map["input_dir_name"]+"/";
+        printf("input_dir_name : %s \n",param_map["input_dir_name"].c_str());
+        
+        string output_dir = now_dir + output_dir_name;
+        string input_bed_file_path = now_dir + input_dir_name + "chr1.bed";
+        string nucleosome_pos_file_path = output_dir + "nucleosome_positions.np";
+        string ratio_file_dir = output_dir+"ratio/";//CpG ratio文件夹
+        string nuc_ratio_dir = output_dir + "nuc_ratio/"; //核小体 ratio 文件夹
+        string detail_file_dir = output_dir+"detail/";//CpG detail文件夹
+        string nuc_detail_dir = output_dir + "nuc_detail/"; //核小体 detail 文件夹
+        string bed_file_dir;
+        string rd_without_dir;
+        //时间步数
+        int time_step = std::atoi(param_map["time_step"].c_str());
+        printf("time_step : %d \n",time_step);
+        
+        int corr_d_max = std::atoi(param_map["corr_d_max"].c_str());
+        printf("corr_d_max : %d \n",corr_d_max);
+        
+        bool calc_interval = std::atoi(param_map["calc_interval"].c_str());
+        printf("calc_interval : %d \n",calc_interval);
+        
+        bool ignore_d = std::atoi(param_map["ignore_d"].c_str());
+        printf("ignore_d : %d \n",ignore_d);
+        
+        int max_cells = std::atoi(param_map["max_cells"].c_str());
+        printf("max_cells : %d \n",max_cells);
+        
+        bool simulation = std::atoi(param_map["simulation"].c_str());
+        printf("simulation : %d \n",simulation);
+        
+        bool calc_corr = std::atoi(param_map["calc_corr"].c_str());
+        printf("calc_corr : %d \n",calc_corr);
+        
+        bool real_chr_pos = std::atoi(param_map["real_chr_pos"].c_str());
+        printf("real_chr_pos : %d \n",real_chr_pos);
+        
+        if(!real_chr_pos)
+        {
+            //超几何分布参数
+            float geometric_p = 0.3;
+            index_pos_list = construct_n_cpg_sites_for_exp_distribution(max_cpg_sites, geometric_p);
+        }
+        else
+        {
+            index_pos_list = get_pos_list_from_bed_file(input_bed_file_path,max_cpg_sites);
+        }
+        
+        
+        //根据CpG在数组index_pos_list中的下标,查找对应的核小体下标
+        vector<int> neucleosome_id_list = get_neucleosome_id_list_from_pos_list(index_pos_list,nucleosome_pos_file_path);
+        
+        int nucleosome_list_size = (int) nucleosome_end_pos_list.size();
+        vector<vector<int>> cpg_id_list = get_corresponding_cpg_id_list(nucleosome_list_size,neucleosome_id_list);
+        
+        init_cell = generate_CpG_in_methylation_percent_UHM(max_cpg_sites,m_ratio,u_ratio);
+        
+        if (simulation)
+        {
+            for(int round_i=round_start; round_i<=round_end; round_i++)
+            {
+                simulate(round_i, generations,time_step,init_cell,neucleosome_id_list,cpg_id_list,detail_file_dir,ratio_file_dir,nuc_detail_dir,nuc_ratio_dir,nucleosome_pos_file_path,propensity_list,nucleosome_propensity_list,nuceo_to_cpg_efficiency,nearby_promote_efficiency,k_range,update_nuc_status_frequency,index_pos_list,max_cells,out_start_gen,out_end_gen,round_start);
+            }
+        }
+        if(calc_corr)
+        {
+            bed_file_dir = output_dir + "bed/";//detail的生成序列
+            
+            rd_without_dir=output_dir+"rd_without/";
+            
+            int round_size=round_end-round_start+1;
+            sort_to_bed(round_size,index_pos_list,detail_file_dir,bed_file_dir,out_start_gen,out_end_gen,time_step,max_cpg_sites);
+            calc_correlation_for_generations(out_start_gen,out_end_gen,time_step,bed_file_dir,rd_without_dir,corr_d_max,calc_interval,ignore_d=false);
+            string out_mean_rd_file = output_dir+"rd_mean.csv";
+            calc_mean_rd_from_rd_dir(rd_without_dir,out_mean_rd_file,corr_d_max,out_start_gen,out_end_gen,time_step);
+        }
+    }
+}
+
+
 int main(int argc, const char * argv[])
 {
-    //start_simulation();
+    //    start_simulation();
     //    system("say Mission completed!");
-    string input_file_path = "/Users/Ren/XCodeProjects/Methylation_Server/Methylation_Server/Musmusculus/GSM2067968/sim_out/repeat_1/partial_1/detail/30_0.csv";
-    string output_file_path = "/Users/Ren/XCodeProjects/Methylation_Server/Methylation_Server/a.csv";
-    preprocess_file(input_file_path,output_file_path);
-    
+    vector<string> param_file_path_list = {"/Users/Ren/XCodeProjects/Cpp_Test/Cpp_Test/config.txt"};
+    start_simualation_from(param_file_path_list);
     return 0;
 }
